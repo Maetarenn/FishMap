@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>FishMap | Balık Yoğunluk Haritası</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+
+<!-- Leaflet (MAP) -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+</head>
+<body class="bg-gradient-to-br from-slate-100 via-blue-50 to-slate-200 text-slate-800">
+
+<!-- Navbar -->
+<header class="sticky top-0 z-50 backdrop-blur bg-blue-900/90 text-white shadow-lg">
+  <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+    <h1 class="text-2xl font-extrabold tracking-wide">🐟 FishMap</h1>
+    <nav class="space-x-6 text-sm font-medium">
+      <button onclick="zoomBlackSea()" class="hover:text-blue-300">Karadeniz</button>
+      <a href="https://obis.org" target="_blank" class="hover:text-blue-300">Veri Kaynakları</a>
+    </nav>
+  </div>
+</header>
+
+<!-- Hero -->
+<section class="max-w-7xl mx-auto px-6 py-10">
+  <div class="bg-white/70 backdrop-blur rounded-2xl shadow-xl p-8">
+    <h2 class="text-3xl font-bold text-blue-900">Balıkların Nerede Olduğunu Keşfet</h2>
+    <p class="mt-2 text-slate-600 max-w-2xl">
+      OBIS açık verileriyle balık türlerinin yoğunluğunu keşfet.
+    </p>
+  </div>
+</section>
+
+<!-- Main -->
+<main class="max-w-7xl mx-auto px-6 pb-10 grid grid-cols-12 gap-6">
+
+<!-- Sidebar -->
+<aside class="col-span-12 md:col-span-3">
+  <div class="bg-white/80 backdrop-blur rounded-2xl shadow-xl p-6 space-y-6 sticky top-24">
+
+    <h2 class="text-xl font-semibold text-blue-900">Filtreler</h2>
+
+    <!-- TEXT INPUT -->
+    <div>
+      <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">
+        Balık Türü (Yaz)
+      </label>
+      <input
+        id="fishInput"
+        placeholder="örn: hamsi, lüfer, orkinos"
+        class="w-full rounded-xl border-slate-200 px-3 py-2 focus:ring-blue-500"
+      />
+    </div>
+
+    <div>
+      <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Bölge</label>
+      <select id="region" class="w-full rounded-xl border-slate-200">
+        <option value="global">Dünya</option>
+        <option value="karadeniz">Karadeniz</option>
+        <option value="ege">Ege</option>
+        <option value="akdeniz">Akdeniz</option>
+      </select>
+    </div>
+
+    <button onclick="fetchFishData()" class="w-full bg-gradient-to-r from-blue-700 to-blue-900 text-white py-2.5 rounded-xl font-semibold">
+      Haritayı Güncelle
+    </button>
+
+  </div>
+</aside>
+
+<!-- Map -->
+<section class="col-span-12 md:col-span-9 space-y-6">
+
+  <div class="bg-white/80 backdrop-blur rounded-2xl shadow-xl overflow-hidden">
+    <div id="map" class="h-[520px]"></div>
+  </div>
+
+  <!-- Info -->
+  <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+    <div class="bg-white/80 rounded-xl shadow p-5">
+      <h3 class="text-sm text-slate-500">Yoğunluk</h3>
+      <p id="densityValue" class="text-xl font-bold text-blue-900">—</p>
+    </div>
+    <div class="bg-white/80 rounded-xl shadow p-5">
+      <h3 class="text-sm text-slate-500">Gözlem Sayısı</h3>
+      <p id="countValue" class="text-xl font-bold text-blue-900">—</p>
+    </div>
+    <div class="bg-white/80 rounded-xl shadow p-5">
+      <h3 class="text-sm text-slate-500">Kaynak</h3>
+      <p class="text-xl font-bold text-blue-900">OBIS</p>
+    </div>
+  </div>
+
+</section>
+</main>
+
+<footer class="bg-slate-900 text-slate-400 text-center py-6 text-sm">
+© 2026 FishMap • Açık Deniz Verisi
+</footer>
+
+<script>
+/* ================= MAP ================= */
+const map = L.map("map").setView([20, 0], 2);
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
+let markers = L.layerGroup().addTo(map);
+
+/* ================= BALIK İSİM EŞLEME ================= */
+const fishMap = {
+  hamsi: "Engraulis encrasicolus",
+  palamut: "Sarda sarda",
+  lufer: "Pomatomus saltatrix",
+  orkinos: "Thunnus thynnus",
+  somon: "Salmo salar"
+};
+
+/* ================= FETCH ================= */
+function fetchFishData() {
+  const input = document.getElementById("fishInput").value.toLowerCase();
+  const region = document.getElementById("region").value;
+
+  const scientific = fishMap[input];
+  if (!scientific) {
+    alert("Bu balık henüz tanımlı değil (örn: hamsi, lüfer)");
+    return;
+  }
+
+  let geometry = "";
+  if (region === "karadeniz")
+    geometry = "&geometry=POLYGON((27 40,42 40,42 47,27 47,27 40))";
+
+  const url =
+    `https://api.obis.org/v3/occurrence?scientificname=${encodeURIComponent(scientific)}&size=300${geometry}`;
+
+  markers.clearLayers();
+  document.getElementById("densityValue").innerText = "Hesaplanıyor...";
+
+  fetch(url)
+    .then(res => res.json())
+    .then(data => {
+      const points = data.results.filter(d => d.decimalLatitude);
+
+      points.forEach(p => {
+        L.circleMarker(
+          [p.decimalLatitude, p.decimalLongitude],
+          { radius: 4, color: "#2563eb" }
+        ).addTo(markers);
+      });
+
+      if (points.length) {
+        map.fitBounds(points.map(p => [p.decimalLatitude, p.decimalLongitude]));
+      }
+
+      const count = data.total || points.length;
+      document.getElementById("countValue").innerText = count;
+      document.getElementById("densityValue").innerText =
+        count > 200 ? "Yüksek" : count > 50 ? "Orta" : "Düşük";
+    })
+    .catch(() => alert("Veri alınamadı"));
+}
+
+function zoomBlackSea() {
+  map.fitBounds([[40,27],[47,42]]);
+}
+</script>
+
+</body>
+</html>
