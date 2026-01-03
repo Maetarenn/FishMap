@@ -44,17 +44,25 @@
 
     <h2 class="text-xl font-semibold text-blue-900">Filtreler</h2>
 
-    <!-- TEXT INPUT -->
-    <div>
-      <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">
-        Balık Türü (Yaz)
-      </label>
-      <input
-        id="fishInput"
-        placeholder="örn: hamsi, palamut, orkinos"
-        class="w-full rounded-xl border-slate-200 px-3 py-2 focus:ring-blue-500"
-      />
-    </div>
+   <!-- TEXT INPUT -->
+<div>
+  <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">
+    Balık Türü (Yaz)
+  </label>
+
+  <!-- Uyarı Notu -->
+  <p class="text-[11px] text-slate-400 mb-1">
+    Not: Balık isimleri büyük/küçük harfe duyarlıdır. 
+    Lütfen <span class="font-medium text-slate-500">küçük harflerle</span> yazınız.
+  </p>
+
+  <input
+    id="fishInput"
+    placeholder="örn: hamsi, palamut, orkinos"
+    class="w-full rounded-xl border-slate-200 px-3 py-2 focus:ring-blue-500"
+  />
+</div>
+
 
     <div>
       <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Bölge</label>
@@ -170,4 +178,5 @@ function zoomBlackSea() {
 
 </body>
 </html>
+
 
