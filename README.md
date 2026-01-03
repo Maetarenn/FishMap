@@ -1,4 +1,4 @@
-🐟 FishMap
+🐟 FishMap | https://fishmap-alpha.vercel.app/
 
 FishMap, dünya genelindeki balık türlerinin gerçek bilimsel veriler kullanılarak harita üzerinde görselleştirilmesini amaçlayan, tamamen frontend tabanlı bir web projesidir.
 
