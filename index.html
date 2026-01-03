@@ -113,35 +113,30 @@
 <script>
 /* ================= MAP ================= */
 const map = L.map("map").setView([20, 0], 2);
-L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
-let markers = L.layerGroup().addTo(map);
 
-/* ================= BALIK İSİM EŞLEME ================= */
-const fishMap = {
-  hamsi: "Engraulis encrasicolus",
-  palamut: "Sarda sarda",
-  lufer: "Pomatomus saltatrix",
-  orkinos: "Thunnus thynnus",
-  somon: "Salmo salar"
-};
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+  attribution: "© OpenStreetMap"
+}).addTo(map);
+
+let markers = L.layerGroup().addTo(map);
 
 /* ================= FETCH ================= */
 function fetchFishData() {
-  const input = document.getElementById("fishInput").value.toLowerCase();
+  const input = document.getElementById("fishInput").value.trim().toLowerCase();
   const region = document.getElementById("region").value;
 
-  const scientific = fishMap[input];
-  if (!scientific) {
-    alert("Bu balık henüz tanımlı değil (örn: hamsi, lüfer)");
+  if (!input) {
+    alert("Lütfen bir balık türü yaz");
     return;
   }
 
   let geometry = "";
-  if (region === "karadeniz")
+  if (region === "karadeniz") {
     geometry = "&geometry=POLYGON((27 40,42 40,42 47,27 47,27 40))";
+  }
 
   const url =
-    `https://api.obis.org/v3/occurrence?scientificname=${encodeURIComponent(scientific)}&size=300${geometry}`;
+    `https://api.obis.org/v3/occurrence?scientificname=${encodeURIComponent(input)}&size=300${geometry}`;
 
   markers.clearLayers();
   document.getElementById("densityValue").innerText = "Hesaplanıyor...";
@@ -149,12 +144,18 @@ function fetchFishData() {
   fetch(url)
     .then(res => res.json())
     .then(data => {
-      const points = data.results.filter(d => d.decimalLatitude);
+      const points = data.results.filter(
+        d => d.decimalLatitude && d.decimalLongitude
+      );
 
       points.forEach(p => {
         L.circleMarker(
           [p.decimalLatitude, p.decimalLongitude],
-          { radius: 4, color: "#2563eb" }
+          {
+            radius: 4,
+            color: "#2563eb",
+            fillOpacity: 0.7
+          }
         ).addTo(markers);
       });
 
@@ -162,21 +163,24 @@ function fetchFishData() {
         map.fitBounds(points.map(p => [p.decimalLatitude, p.decimalLongitude]));
       }
 
-      const count = data.total || points.length;
+      const count = data.total ?? points.length;
+
       document.getElementById("countValue").innerText = count;
       document.getElementById("densityValue").innerText =
         count > 200 ? "Yüksek" : count > 50 ? "Orta" : "Düşük";
     })
-    .catch(() => alert("Veri alınamadı"));
+    .catch(() => alert("OBIS verisi alınamadı"));
 }
 
+/* ================= KARADENİZ ZOOM ================= */
 function zoomBlackSea() {
-  map.fitBounds([[40,27],[47,42]]);
+  map.fitBounds([[40, 27], [47, 42]]);
 }
 </script>
 
 </body>
 </html>
+
 
 
 
